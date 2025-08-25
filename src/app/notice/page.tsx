@@ -109,7 +109,7 @@ function NoticePageContent() {
           {notices.map((notice) => (
             <div
               key={notice.id}
-              className="bg-white dark:bg-gray-900 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-6 hover:scale-[1.01]"
+              className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 p-6 hover:scale-[1.01]"
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-start gap-4">
@@ -117,7 +117,7 @@ function NoticePageContent() {
                     {notice.icon}
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <h2 className="text-lg font-semibold text-gray-900">
                       {notice.title}
                     </h2>
                     <div className="flex gap-2 mt-3 flex-wrap">
@@ -128,7 +128,7 @@ function NoticePageContent() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap">
+                <div className="flex items-center text-sm text-gray-500 mt-1 whitespace-nowrap">
                   <Calendar className="h-4 w-4 mr-1" />
                   {new Date(notice.date).toLocaleDateString(undefined, {
                     year: "numeric",
@@ -137,7 +137,7 @@ function NoticePageContent() {
                   })}
                 </div>
               </div>
-              <p className="text-sm text-gray-700 dark:text-gray-300 mt-4 leading-relaxed">
+              <p className="text-sm text-gray-700 mt-4 leading-relaxed">
                 {notice.description}
               </p>
             </div>
@@ -145,11 +145,11 @@ function NoticePageContent() {
         </div>
 
         {/* How to Stay Updated */}
-        <div className="mt-14 bg-white dark:bg-gray-900 rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-semibold mb-5 text-gray-900 dark:text-white">
+        <div className="mt-14 bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-semibold mb-5 text-gray-900">
             📬 How to Stay Updated
           </h3>
-          <ul className="space-y-4 text-sm text-gray-700 dark:text-gray-300">
+          <ul className="space-y-4 text-sm text-gray-700">
             {[
               "Check this page regularly for the latest updates",
               "Important notices are also posted on the notice board",

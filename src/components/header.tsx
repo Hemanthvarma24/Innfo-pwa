@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Menu,
   X,
@@ -24,36 +24,40 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import logo from "@/assets/Innfo-Logo.png";
 
-const navigation = [
-  { name: "Home", href: "/", icon: Home },
-  { name: "Register", href: "/register", icon: Phone },
-  { name: "Food Plan", href: "/food", icon: Utensils },
-  { name: "Gallery", href: "/gallery", icon: Camera },
-  { name: "Pay Rent", href: "/pay-rent", icon: CreditCard },
-  { name: "Rules", href: "/rules", icon: FileText },
-  { name: "Location", href: "/location", icon: MapPin },
-  { name: "Notices", href: "/notice", icon: Bell },
-  { name: "Reviews", href: "/reviews", icon: Star },
-  { name: "Help", href: "/help", icon: HelpCircle },
-];
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const userId = searchParams.get("user_id")
+const buildingId= searchParams.get("building_id")
 
- const handleShare = async () => {
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: "Check out this PG!",
-        url: window.location.href,
-      });
-    } catch (err) {
-      console.error("Error sharing:", err);
+  const navigation = [
+    { name: "Home", href: `/?user_id=${userId}&building_id=${buildingId}`, icon: Home },
+    { name: "Register", href: `/register?user_id=${userId}&building_id=${buildingId}`, icon: Phone },
+    { name: "Food Plan", href: `/food?user_id=${userId}&building_id=${buildingId}`, icon: Utensils },
+    { name: "Gallery", href: `/gallery?user_id=${userId}&building_id=${buildingId}`, icon: Camera },
+    { name: "Pay Rent", href: `/pay-rent?user_id=${userId}&building_id=${buildingId}`, icon: CreditCard },
+    { name: "Rules", href: `/rules?user_id=${userId}&building_id=${buildingId}`, icon: FileText },
+    { name: "Location", href: `/location?user_id=${userId}&building_id=${buildingId}`, icon: MapPin },
+    { name: "Notices", href: `/notice?user_id=${userId}&building_id=${buildingId}`, icon: Bell },
+    { name: "Reviews", href: `/reviews?user_id=${userId}&building_id=${buildingId}`, icon: Star },
+    { name: "Help", href: `/help?user_id=${userId}&building_id=${buildingId}`, icon: HelpCircle },
+  ];
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Check out this PG!",
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.error("Error sharing:", err);
+      }
     }
-  }
-};
+  };
 
 
   return (
@@ -66,7 +70,7 @@ export default function Header() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-3">
+            <Link href={`/?user_id=${userId}&building_id=${buildingId}`} className="flex items-center space-x-3">
               <motion.div whileHover={{ scale: 1.05 }}>
                 <Image
                   src={logo}
@@ -81,17 +85,20 @@ export default function Header() {
             <nav className="hidden lg:flex items-center space-x-1">
               {navigation.slice(0, 6).map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+
+                // Extract the path part from the href (remove query string)
+                const itemPath = item.href.split("?")[0];
+                const isActive = pathname === itemPath;
+
                 return (
                   <Link key={item.name} href={item.href}>
                     <motion.div
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                        isActive
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isActive
                           ? "bg-[#4f008c] text-white shadow-md"
-                          : "text-gray-600 "
-                      }`}
+                          : "text-gray-600"
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                       <span>{item.name}</span>
@@ -163,7 +170,7 @@ export default function Header() {
 
                 {/* Menu List */}
                 <nav className="space-y-2 flex-1 overflow-y-auto"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                   {navigation.map((item, index) => {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;
@@ -177,11 +184,10 @@ export default function Header() {
                         <Link
                           href={item.href}
                           onClick={() => setIsOpen(false)}
-                          className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                            isActive
-                              ? "bg-white/20 text-white"
-                              : "text-white hover:bg-white/10"
-                          }`}
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive
+                            ? "bg-white/20 text-white"
+                            : "text-white hover:bg-white/10"
+                            }`}
                         >
                           <Icon className="w-5 h-5" />
                           <span>{item.name}</span>
@@ -191,13 +197,13 @@ export default function Header() {
                   })}
                 </nav>
 
-               {/* Floating Share Button */}
-<Button
-  onClick={handleShare}
-  className="fixed bottom-6 right-6 z-50 bg-white text-[#4f008c] rounded-full"
->
-  <Share2 className="w-5 h-5" />
-</Button>
+                {/* Floating Share Button */}
+                <Button
+                  onClick={handleShare}
+                  className="fixed bottom-6 right-6 z-50 bg-white text-[#4f008c] rounded-full"
+                >
+                  <Share2 className="w-5 h-5" />
+                </Button>
 
               </div>
             </motion.div>

@@ -2,6 +2,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,8 +19,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <div className="flex min-h-screen flex-col">
-          <main className="flex-1">{children}</main>
+        <div className="flex flex-col">
+          <main>
+            <Suspense>
+              {children}
+            </Suspense>
+            </main>
         </div>
       </body>
     </html>

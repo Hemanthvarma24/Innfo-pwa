@@ -1,39 +1,71 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Phone, Shield, Wrench, MessageSquare, Clock, AlertTriangle, X } from "lucide-react"
 import { HelpPageSkeleton } from "@/components/skeleton-loader"
 import { motion, AnimatePresence } from "framer-motion"
 import UserLayout from "@/components/userlayout"
+import { useSearchParams } from "next/navigation"
+
+type Contact = {
+  title: string;
+  name?: string;
+  number?: string;
+  available: string;
+  icon: JSX.Element;
+};
+
 
 function HelpPageContent() {
   const [showQuickActions, setShowQuickActions] = useState(false)
 
-  const pgContacts = [
-    {
-      title: "PG Owner",
-      name: "Rajesh Kumar",
-      number: "+91 98765 43210",
-      available: "24/7 Emergency",
-      icon: <Phone className="h-6 w-6" />,
-    },
-    {
-      title: "PG Manager",
-      name: "Priya Sharma",
-      number: "+91 98765 43211",
-      available: "9 AM - 8 PM",
-      icon: <MessageSquare className="h-6 w-6" />,
-    },
-    {
-      title: "Maintenance",
-      name: "Maintenance Team",
-      number: "+91 98765 43212",
-      available: "9 AM - 6 PM",
-      icon: <Wrench className="h-6 w-6" />,
-    },
-  ]
+  const [pgContacts, setPgContacts] = useState<Contact[]>([]);
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const userId = searchParams.get("user_id")
+    if (!userId) return
+
+    const fetchData = async () => {
+      try {
+        const res = await fetch(
+          `https://innfo.top/App/api.php?gofor=userget&user_id=${userId}`
+        )
+        const data = await res.json()
+
+        // Build contacts array dynamically
+        setPgContacts([
+          {
+            title: "PG Owner",
+            name: data.name,
+            number: data.mobileno,
+            available: "24/7 Emergency",
+            icon: <Phone className="h-6 w-6" />,
+          },
+          {
+            title: "PG Manager",
+            name: data.manager,
+            number: data.managerno,
+            available: "9 AM - 8 PM",
+            icon: <MessageSquare className="h-6 w-6" />,
+          },
+          {
+            title: "Maintenance",
+            name: data.maintenance,
+            number: data.maintenanceno,
+            available: "9 AM - 6 PM",
+            icon: <Wrench className="h-6 w-6" />,
+          },
+        ])
+      } catch (error) {
+        console.error("Error fetching contacts:", error)
+      }
+    }
+
+    fetchData()
+  }, [searchParams])
 
   const commonIssues = [
     {
@@ -96,7 +128,7 @@ function HelpPageContent() {
       <div className="max-w-6xl mx-auto space-y-4">
         <div>
           <h1 className="text-xl font-bold">Emergency & Help</h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600">
             Quick access to emergency contacts and help resources
           </p>
         </div>
@@ -122,11 +154,23 @@ function HelpPageContent() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Button size="sm" variant="outline" onClick={() => window.open(`tel:${contact.number}`)}>Call</Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(`https://wa.me/${contact.number.replace(/[^0-9]/g, "")}`)}
+                      onClick={() => window.open(`tel:${contact.number}`)}
+                      className="bg-[#1B86FA] text-white rounded-2xl"
+                    >
+                      Call
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        contact.number &&
+                        window.open(`https://wa.me/${contact.number.replace(/[^0-9]/g, "")}`)
+                      }
+
+                      className="bg-[#25D366] text-white rounded-2xl"
                     >
                       WhatsApp
                     </Button>
@@ -141,17 +185,17 @@ function HelpPageContent() {
             {commonIssues.map((item, idx) => (
               <div
                 key={idx}
-                className={`bg-white rounded-lg shadow-lg p-4 ${item.urgent ? "border border-orange-200 dark:border-orange-800" : ""}`}
+                className={`bg-white rounded-lg shadow-lg p-4 ${item.urgent ? "border border-orange-200" : ""}`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold">{item.issue}</h3>
                   {item.urgent && (
-                    <span className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 text-xs px-2 py-1 rounded-full">
+                    <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full">
                       Urgent
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{item.solution}</p>
+                <p className="text-sm text-gray-600">{item.solution}</p>
               </div>
             ))}
           </div>
@@ -196,14 +240,14 @@ function HelpPageContent() {
       </AnimatePresence>
 
       {/* Floating FAB Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* <div className="fixed bottom-6 right-6 z-50">
         <Button
           className="rounded-full h-14 w-14 shadow-xl bg-primary text-white"
           onClick={() => setShowQuickActions((prev) => !prev)}
         >
           {showQuickActions ? <X className="w-6 h-6" /> : <Phone className="w-6 h-6" />}
         </Button>
-      </div>
+      </div> */}
     </div>
   )
 }
@@ -211,9 +255,9 @@ function HelpPageContent() {
 export default function HelpPage() {
   return (
     <UserLayout>
-    <Suspense fallback={<HelpPageSkeleton />}>
-      <HelpPageContent />
-    </Suspense>
+      <Suspense fallback={<HelpPageSkeleton />}>
+        <HelpPageContent />
+      </Suspense>
     </UserLayout>
   )
 }

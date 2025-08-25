@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   Clock,
   Utensils,
@@ -19,13 +19,50 @@ import {
   Microwave,
   Home,
   Brush,
-  WashingMachine,
+  Repeat ,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RulesPageSkeleton } from "@/components/skeleton-loader";
 import UserLayout from "@/components/userlayout";
 
+import { useRouter, useSearchParams } from "next/navigation";
+
+
+type APIRule = {
+  id: number;
+  rule_title: string;
+  rule_description: string;
+  priority: number;
+  status: number;
+};
+
 function RulesPageContent() {
+  const [rules, setRules] = useState<APIRule[]>([]);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+   const userId = searchParams.get("user_id")
+const buildingId= searchParams.get("building_id")
+
+  useEffect(() => {
+      if (!userId) {
+        return;
+      }
+    const fetchRules = async () => {
+      try {
+        const res = await fetch(`https://innfo.top/App/api.php?gofor=ruleslist&user_id=${userId}`);
+        const data: APIRule[] = await res.json();
+
+        const activeRules = data.filter((r) => r.status === 1);
+        const sortedRules = activeRules.sort((a, b) => a.priority - b.priority);
+        setRules(sortedRules);
+      } catch (error) {
+        console.error("Failed to fetch rules:", error);
+      }
+    };
+
+    fetchRules();
+  }, []);
+
   return (
     <div className="container mx-auto px-4 pt-[80px] pb-12">
       <div className="max-w-5xl mx-auto space-y-6">
@@ -42,80 +79,27 @@ function RulesPageContent() {
             <TabsTrigger value="facilities">Facilities</TabsTrigger>
           </TabsList>
 
-          {/* RULES */}
+          {/* RULES TAB */}
           <TabsContent value="rules">
-            <div className="bg-white rounded-xl shadow-lg p-6 space-y-8">
-              <Section
-                title="Timings"
-                icon={<Clock className="text-primary" />}
-              >
-                <RuleList
-                  items={[
-                    "Gate Closing Time: 11:00 PM. Entry after this time requires prior permission.",
-                    "Breakfast: 7:00 AM - 9:00 AM",
-                    "Lunch: 12:30 PM - 2:30 PM",
-                    "Dinner: 8:00 PM - 10:00 PM",
-                  ]}
-                />
-              </Section>
-
-              <Section
-                title="Visitors"
-                icon={<Users className="text-primary" />}
-              >
-                <RuleList
-                  items={[
-                    "Visitors are allowed only in the common area from 9:00 AM to 8:00 PM.",
-                    "Overnight guests are not permitted without prior approval.",
-                    "All visitors must register at the reception.",
-                  ]}
-                />
-              </Section>
-
-              <Section
-                title="Noise & Disturbance"
-                icon={<Volume2 className="text-primary" />}
-              >
-                <RuleList
-                  items={[
-                    "Maintain silence between 10:00 PM and 6:00 AM.",
-                    "Use headphones when listening to music or watching videos.",
-                    "Group gatherings in rooms should not disturb others.",
-                  ]}
-                />
-              </Section>
-
-              <Section
-                title="Cleanliness"
-                icon={<Trash2 className="text-primary" />}
-              >
-                <RuleList
-                  items={[
-                    "Keep your room clean and tidy.",
-                    "Dispose of waste in designated bins only.",
-                    "Room cleaning service is provided twice a week.",
-                    "Common areas should be kept clean after use.",
-                  ]}
-                />
-              </Section>
-
-              <Section
-                title="Prohibited Items"
-                icon={<ShieldAlert className="text-primary" />}
-              >
-                <RuleList
-                  items={[
-                    "Smoking is strictly prohibited inside the premises.",
-                    "Alcohol consumption is not allowed.",
-                    "Cooking in rooms is not permitted.",
-                    "Pets are not allowed.",
-                  ]}
-                />
+            <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
+              <Section title="House Rules" icon={<ShieldAlert className="text-primary" />}>
+                {rules.length > 0 ? (
+                  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                    {rules.map((rule) => (
+                      <li key={rule.id}>
+                        <span className="font-semibold">{rule.rule_title}: </span>
+                        {rule.rule_description}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">No rules available at the moment.</p>
+                )}
               </Section>
             </div>
           </TabsContent>
 
-          {/* FACILITIES */}
+          {/* FACILITIES TAB */}
           <TabsContent value="facilities">
             <div className="bg-white rounded-xl shadow-lg p-6 space-y-8">
               <div className="grid md:grid-cols-2 gap-6">
@@ -157,9 +141,7 @@ function RulesPageContent() {
               </div>
 
               <div>
-                <h3 className="text-lg font-medium mb-3">
-                  Amenities Checklist
-                </h3>
+                <h3 className="text-lg font-medium mb-3">Amenities Checklist</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     [<Home />, "Fully furnished rooms"],
@@ -170,13 +152,13 @@ function RulesPageContent() {
                     [<Microwave />, "Microwave in common area"],
                     [<Droplet />, "Hot water supply"],
                     [<Brush />, "Housekeeping"],
-                    [<WashingMachine />, "Laundry service"],
+                    [<Repeat />, "Laundry service"],
                   ].map(([icon, label], i) => (
                     <div key={i} className="flex items-center gap-3">
                       <div className="p-1.5 rounded-full bg-primary/10 text-primary">
                         {icon}
                       </div>
-                      <span className="text-gray-700 dark:text-gray-300">
+                      <span className="text-gray-700">
                         {label}
                       </span>
                     </div>
@@ -221,7 +203,7 @@ function RulesPageContent() {
                   ].map((room, i) => (
                     <div
                       key={i}
-                      className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl"
+                      className="bg-gray-50 p-4 rounded-xl"
                     >
                       <h4 className="font-semibold mb-2">{room.title}</h4>
                       <ul className="text-sm space-y-1 text-muted-foreground">
@@ -259,20 +241,12 @@ const Section = ({
   </div>
 );
 
-const RuleList = ({ items }: { items: string[] }) => (
-  <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-    {items.map((item, i) => (
-      <li key={i}>{item}</li>
-    ))}
-  </ul>
-);
-
 export default function RulesPage() {
   return (
-     <UserLayout>
-    <Suspense fallback={<RulesPageSkeleton />}>
-      <RulesPageContent />
-    </Suspense>
+    <UserLayout>
+      <Suspense fallback={<RulesPageSkeleton />}>
+        <RulesPageContent />
+      </Suspense>
     </UserLayout>
   );
 }
