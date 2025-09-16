@@ -94,8 +94,8 @@ const getPriorityColor = (priority: string) => {
 
 function NoticePageContent() {
   return (
-    <div className="container mx-auto px-4 pt-22 pb-16">
-      <div className="max-w-4xl mx-auto">
+    <div className="container mx-auto px-4 pt-[80px] pb-16">
+      <div className="max-w-4xl mx-auto ">
         {/* Header */}
         <div>
           <h1 className="text-xl font-bold mb-1">Notices & Updates</h1>

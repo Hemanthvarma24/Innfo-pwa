@@ -100,7 +100,9 @@ const buildingId= searchParams.get("building_id")
 
             {/* Weekly Tab */}
             <TabsContent value="weekly">
-              <div className="flex overflow-x-auto pb-2 gap-2 mb-6">
+              <div className="flex overflow-x-auto pb-2 gap-2 mb-6"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
                 {allDays.map((day) => (
                   <button
                     key={day}

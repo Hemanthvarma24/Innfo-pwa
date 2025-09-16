@@ -1,6 +1,5 @@
 "use client";
-import type React from "react";
-import { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,101 +11,92 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, User, FileText, Loader2, Home, Briefcase, Building, Camera, Upload, Trash2 } from 'lucide-react';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  User,
+  FileText,
+  Loader2,
+  Briefcase,
+  Building,
+  Camera,
+  Upload,
+  Trash2,
+  Check,
+  ChevronsUpDown,
+} from "lucide-react";
 import toast from "react-hot-toast";
-import { useRouter, useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
 import UserLayout from "@/components/userlayout";
-import { HomePageSkeleton } from "@/components/skeleton-loader";
 
-interface GuestFormData {
+interface Country {
+  id: string;
   name: string;
-  mobile: string;
-  email: string;
-  idProofType: string;
-  idProofNumber: string;
-  checkInDate: string;
-  roomId: string;
-  bedId: string;
-  rentAmount: string;
-  rentDueDate: string;
-  foodPlan: string;
-  address: string;
-  bloodGroup: string;
-  emergencyContact: string;
-  occupation: string;
-  companyName: string;
-  vehicleDetails: string;
-  dateOfJoining: string;
-  expectedStayDuration: string;
-  referenceName: string;
-  referenceContact: string;
-  notes: string;
-  photo: string;
 }
 
-interface Room {
-  room_id: number;
-  room_no: string;
-  room_type: string;
-  rent_amount: string;
+interface State {
+  id: string;
+  name: string;
 }
 
-interface Bed {
-  bed_id: number;
-  bed_no: string;
-  ava_status: string;
+interface City {
+  id: string;
+  name: string;
 }
 
-function AddGuestPage() {
-  const searchParams = useSearchParams();
-  const userId = searchParams.get("user_id")
-const buildingId= searchParams.get("building_id");
-  const [isVisible, setIsVisible] = useState(false);
+function RegisterForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [beds, setBeds] = useState<Bed[]>([]);
-  const [loadingRooms, setLoadingRooms] = useState(false);
-  const [loadingBeds, setLoadingBeds] = useState(false);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [states, setStates] = useState<State[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [uploadErrors, setUploadErrors] = useState<{ photo?: string }>({});
-  const [isInitialized, setIsInitialized] = useState(false);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
 
-  const [formData, setFormData] = useState<GuestFormData>({
+  // States for searchable selects
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [stateOpen, setStateOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const [formData, setFormData] = useState({
     name: "",
     mobile: "",
     email: "",
     idProofType: "",
     idProofNumber: "",
-    checkInDate: "",
-    roomId: "",
-    bedId: "",
-    rentAmount: "",
-    rentDueDate: "",
-    foodPlan: "",
     address: "",
+    pincode: "",
+    country: "",
+    state: "",
+    city: "",
     bloodGroup: "",
-    emergencyContact: "",
+    emerContactName: "",
+    emerContactNo: "",
     occupation: "",
     companyName: "",
-    vehicleDetails: "",
+    vehicleName: "",
+    vehicleNo: "",
     dateOfJoining: "",
-    expectedStayDuration: "",
     referenceName: "",
     referenceContact: "",
     notes: "",
     photo: "",
   });
-
-  // Initialize component and fetch rooms
-  useEffect(() => {
-    if (userId && !isInitialized) {
-      fetchRooms();
-      setIsInitialized(true);
-    }
-  }, [userId, isInitialized]);
 
   // Convert file to base64
   const fileToBase64 = (file: File): Promise<string> => {
@@ -115,10 +105,10 @@ const buildingId= searchParams.get("building_id");
       reader.readAsDataURL(file);
       reader.onload = () => {
         if (reader.result) {
-          const base64String = reader.result.toString().split(',')[1];
+          const base64String = reader.result.toString().split(",")[1];
           resolve(base64String);
         } else {
-          reject(new Error('Failed to convert file to base64'));
+          reject(new Error("Failed to convert file to base64"));
         }
       };
       reader.onerror = (error) => reject(error);
@@ -137,8 +127,8 @@ const buildingId= searchParams.get("building_id");
   const uploadPhoto = async (file: File): Promise<string | null> => {
     try {
       setIsUploadingPhoto(true);
-      setUploadErrors(prev => ({ ...prev, photo: undefined }));
-      
+      setUploadErrors((prev) => ({ ...prev, photo: undefined }));
+
       const base64String = await fileToBase64(file);
       const uploadData = {
         gofor: "image_upload",
@@ -153,7 +143,7 @@ const buildingId= searchParams.get("building_id");
       });
 
       const data = await response.json();
-      
+
       if (data.success && data.url) {
         const uploadedUrl = data.url;
         setFormData((prev) => ({ ...prev, photo: uploadedUrl }));
@@ -179,7 +169,7 @@ const buildingId= searchParams.get("building_id");
   // Validate file before upload
   const validateFile = (file: File): string | null => {
     const maxSize = 5 * 1024 * 1024; // 5MB
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
 
     if (!allowedTypes.includes(file.type)) {
       return "Please select a valid image file (JPEG, PNG, GIF)";
@@ -196,10 +186,9 @@ const buildingId= searchParams.get("building_id");
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const validationError = validateFile(file);
     if (validationError) {
-      setUploadErrors(prev => ({ ...prev, photo: validationError }));
+      setUploadErrors((prev) => ({ ...prev, photo: validationError }));
       toast.error(validationError);
       return;
     }
@@ -211,163 +200,115 @@ const buildingId= searchParams.get("building_id");
   const removePhoto = () => {
     setFormData((prev) => ({ ...prev, photo: "" }));
     setPhotoPreview(null);
-    setUploadErrors(prev => ({ ...prev, photo: undefined }));
+    setUploadErrors((prev) => ({ ...prev, photo: undefined }));
     if (photoInputRef.current) {
       photoInputRef.current.value = "";
     }
   };
 
-  // Fetch rooms - FIXED VERSION
-  const fetchRooms = async () => {
-    if (!userId) return;
-    
-    try {
-      setLoadingRooms(true);
-      const response = await fetch(
-        `https://innfo.top/App/api.php?gofor=roomlist&user_id=${userId}`
-      );
-      
-      if (!response.ok) throw new Error("Failed to fetch rooms");
-      
-      const data = await response.json();
-      console.log("Rooms data:", data);
-      
-      // The API returns an array directly, not wrapped in an object
-      if (Array.isArray(data)) {
-        setRooms(data);
-        console.log("Rooms set successfully:", data);
-      } else {
-        console.error("Unexpected rooms response structure:", data);
-        setRooms([]);
-        toast.error("Invalid response format for rooms");
+  // Fetch countries
+  useEffect(() => {
+    const fetchCountries = async () => {
+      setLoadingCountries(true);
+      try {
+        const response = await fetch(
+          "https://innfo.top/App/api.php?gofor=countrieslist"
+        );
+        const data: Country[] = await response.json();
+        setCountries(data);
+      } catch (error) {
+        console.error("Error fetching countries:", error);
+        toast.error("Failed to load countries");
+      } finally {
+        setLoadingCountries(false);
       }
-    } catch (err) {
-      console.error("Error fetching rooms:", err);
-      toast.error("Failed to fetch rooms");
-      setRooms([]);
+    };
+
+    fetchCountries();
+  }, []);
+
+  // Fetch states based on country
+  const fetchStates = async (countryId: string) => {
+    setLoadingStates(true);
+    try {
+      const response = await fetch(
+        `https://innfo.top/App/api.php?gofor=stateslist&country_id=${countryId}`
+      );
+      const data: State[] = await response.json();
+      setStates(data);
+    } catch (error) {
+      console.error("Error fetching states:", error);
+      toast.error("Failed to load states");
     } finally {
-      setLoadingRooms(false);
+      setLoadingStates(false);
     }
   };
 
-  // Fetch beds for selected room
-  const fetchBeds = async (roomId: string) => {
-    if (!roomId) return;
-    
+  // Fetch cities based on state
+  const fetchCities = async (stateId: string) => {
+    setLoadingCities(true);
     try {
-      setLoadingBeds(true);
       const response = await fetch(
-        `https://innfo.top/App/api.php?gofor=bedlist&room_id=${roomId}`
+        `https://innfo.top/App/api.php?gofor=citieslist&state_id=${stateId}`
       );
-      
-      if (!response.ok) throw new Error("Failed to fetch beds");
-      
-      const data = await response.json();
-      console.log("Beds data:", data);
-      
-      if (Array.isArray(data)) {
-        setBeds(data);
-      } else if (data.success && Array.isArray(data.data)) {
-        setBeds(data.data);
-      } else if (data.beds && Array.isArray(data.beds)) {
-        setBeds(data.beds);
-      } else {
-        console.error("Unexpected beds response structure:", data);
-        setBeds([]);
-      }
-    } catch (err) {
-      console.error("Error fetching beds:", err);
-      toast.error("Failed to fetch beds");
-      setBeds([]);
+      const data: City[] = await response.json();
+      setCities(data);
+    } catch (error) {
+      console.error("Error fetching cities:", error);
+      toast.error("Failed to load cities");
     } finally {
-      setLoadingBeds(false);
+      setLoadingCities(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleSelectChange = (id: keyof GuestFormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [id]: value }));
-
-    // Auto-fill rent amount when room is selected
-    if (id === "roomId") {
-      // Clear bed selection when room changes
-      setFormData((prev) => ({ ...prev, bedId: "" }));
-      setBeds([]);
-      
-      if (value) {
-        fetchBeds(value);
-        // Auto-fill rent amount when room is selected
-        const selectedRoom = rooms.find((room) => room.room_id.toString() === value);
-        if (selectedRoom) {
-          setFormData((prev) => ({
-            ...prev,
-            rentAmount: selectedRoom.rent_amount,
-          }));
-        }
-      } else {
-        setBeds([]);
-      }
+    // Filter to digits only for mobile
+    if (id === "mobile") {
+      setFormData((prev) => ({ ...prev, [id]: value.replace(/\D/g, "") }));
+    } else {
+      setFormData((prev) => ({ ...prev, [id]: value }));
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      mobile: "",
-      email: "",
-      idProofType: "",
-      idProofNumber: "",
-      checkInDate: "",
-      roomId: "",
-      bedId: "",
-      rentAmount: "",
-      rentDueDate: "",
-      foodPlan: "",
-      address: "",
-      bloodGroup: "",
-      emergencyContact: "",
-      occupation: "",
-      companyName: "",
-      vehicleDetails: "",
-      dateOfJoining: "",
-      expectedStayDuration: "",
-      referenceName: "",
-      referenceContact: "",
-      notes: "",
-      photo: "",
-    });
-    setPhotoPreview(null);
-    setUploadErrors({});
-    setBeds([]);
-    setIsInitialized(false);
-    if (photoInputRef.current) {
-      photoInputRef.current.value = "";
+  const handleSelectChange = (id: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [id]: value }));
+    if (id === "country") {
+      setFormData((prev) => ({ ...prev, state: "", city: "" }));
+      setStates([]);
+      setCities([]);
+      if (value) {
+        const selectedCountry = countries.find((c) => c.name === value);
+        if (selectedCountry) {
+          fetchStates(selectedCountry.id);
+        }
+      }
+    } else if (id === "state") {
+      setFormData((prev) => ({ ...prev, city: "" }));
+      setCities([]);
+      if (value) {
+        const selectedState = states.find((s) => s.name === value);
+        if (selectedState) {
+          fetchCities(selectedState.id);
+        }
+      }
     }
   };
 
   const validateForm = () => {
     const errors: string[] = [];
-    
+
     if (!formData.name.trim()) errors.push("Guest name is required");
     if (!formData.mobile.trim()) errors.push("Mobile number is required");
-    if (!formData.roomId.trim()) errors.push("Room selection is required");
-    if (!formData.rentAmount.trim()) errors.push("Rent amount is required");
-    if (!formData.checkInDate) errors.push("Check-in date is required");
-    if (!formData.rentDueDate) errors.push("Rent due date is required");
 
     // Validate mobile number
     const mobileRegex = /^[6-9]\d{9}$/;
-    if (formData.mobile && !mobileRegex.test(formData.mobile.replace(/\D/g, ""))) {
-      errors.push("Please enter a valid 10-digit mobile number");
-    }
-
-    // Validate rent amount
-    if (formData.rentAmount && (isNaN(Number(formData.rentAmount)) || Number(formData.rentAmount) <= 0)) {
-      errors.push("Please enter a valid rent amount");
+    if (formData.mobile && !mobileRegex.test(formData.mobile)) {
+      errors.push(
+        "Please enter a valid 10-digit mobile number starting with 6-9"
+      );
     }
 
     // Validate email if provided
@@ -376,7 +317,7 @@ const buildingId= searchParams.get("building_id");
     }
 
     if (errors.length > 0) {
-      errors.forEach(error => toast.error(error));
+      errors.forEach((error) => toast.error(error));
     }
 
     return errors;
@@ -384,13 +325,9 @@ const buildingId= searchParams.get("building_id");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
-      return;
-    }
-
-    if (!userId) {
-      toast.error("User ID is required");
       return;
     }
 
@@ -404,26 +341,23 @@ const buildingId= searchParams.get("building_id");
         email: formData.email.trim(),
         id_proof_type: formData.idProofType,
         id_proof_number: formData.idProofNumber.trim(),
-        check_in_date: formData.checkInDate,
-        room_id: formData.roomId,
-        bed_id: formData.bedId || "",
-        rent_amount: formData.rentAmount,
-        rent_due_date: formData.rentDueDate,
-        food_plan: formData.foodPlan,
         address: formData.address.trim(),
+        pincode: formData.pincode.trim(),
+        country: formData.country,
+        state: formData.state,
+        city: formData.city,
         blood_group: formData.bloodGroup,
-        emergency_contact: formData.emergencyContact.trim(),
+        emer_contactname: formData.emerContactName.trim(),
+        emer_contactno: formData.emerContactNo.trim(),
         occupation: formData.occupation.trim(),
         company_name: formData.companyName.trim(),
-        vehicle_details: formData.vehicleDetails.trim(),
+        vehicle_name: formData.vehicleName.trim(),
+        vehicle_no: formData.vehicleNo.trim(),
         date_of_joining: formData.dateOfJoining,
-        expected_stay_duration: formData.expectedStayDuration.trim(),
         reference_name: formData.referenceName.trim(),
         reference_contact: formData.referenceContact.trim(),
         notes: formData.notes.trim(),
         photo: formData.photo,
-        user_id: userId,
-        stay_status: "Active"
       };
 
       console.log("Submitting payload:", payload);
@@ -454,11 +388,13 @@ const buildingId= searchParams.get("building_id");
           }
         }
 
-        if (responseData.success !== false && !responseText.toLowerCase().includes("error")) {
+        if (
+          responseData.success !== false &&
+          !responseText.toLowerCase().includes("error")
+        ) {
           const successMessage = "Guest added successfully!";
           toast.success(successMessage);
-          resetForm();
-          router.push(`/user_id=${userId}`);
+          // Reset form or navigate as needed
         } else {
           throw new Error(responseData.message || "Failed to add guest");
         }
@@ -480,7 +416,7 @@ const buildingId= searchParams.get("building_id");
         <div className="w-full max-w-xs">
           {photoPreview ? (
             <div className="relative">
-              <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-[#52018E] shadow-lg">
+              <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-[#3578D9] shadow-lg">
                 <img
                   src={photoPreview || "/placeholder.svg"}
                   alt="Guest photo"
@@ -503,7 +439,6 @@ const buildingId= searchParams.get("building_id");
           )}
         </div>
       </div>
-
       <div className="text-center space-y-2">
         <input
           ref={photoInputRef}
@@ -518,7 +453,7 @@ const buildingId= searchParams.get("building_id");
           variant="outline"
           onClick={() => photoInputRef.current?.click()}
           disabled={isUploadingPhoto || isSubmitting}
-          className="w-full max-w-xs mx-auto rounded-xl border-2 border-[#52018E] text-[#52018E] hover:bg-[#52018E] hover:text-white transition-colors"
+          className="w-full max-w-xs mx-auto rounded-xl border-2 border-[#3578D9] text-[#3578D9] hover:bg-[#3578D9] hover:text-white transition-colors"
         >
           {isUploadingPhoto ? (
             <>
@@ -532,11 +467,11 @@ const buildingId= searchParams.get("building_id");
             </>
           )}
         </Button>
-        
+
         {uploadErrors.photo && (
           <p className="text-sm text-red-600">{uploadErrors.photo}</p>
         )}
-        
+
         <p className="text-xs text-gray-500">
           Supported formats: JPEG, PNG, GIF (Max: 5MB)
         </p>
@@ -545,502 +480,589 @@ const buildingId= searchParams.get("building_id");
   );
 
   return (
-    <div>
-        <div className="min-h-screen bg-gray-50 p-4 mt-[60px]">
-          <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg">
-            {/* Header */}
-            <div className="px-6 py-6 border-b border-gray-100">
-              <h1 className="text-2xl font-bold text-gray-900">Add New Register</h1>
-            </div>
+    <UserLayout>
+      <div className="min-h-screen bg-gray-50 p-4 mt-[60px]">
+        <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm">
+          {/* Header */}
+          <div className="px-6 py-6 border-b border-gray-100">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Register New Guest
+            </h1>
+          </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit}>
-              <div className="p-6 space-y-6">
-                
-                {/* Photo Upload */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Camera className="w-5 h-5 text-[#52018E]" />
-                    Add Photo
-                  </h3>
-                  <PhotoUploadComponent />
-                </div>
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            <div className="p-6 space-y-6">
+              {/* Photo Upload */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-[#3578D9]" />
+                  Add Photo
+                </h3>
+                <PhotoUploadComponent />
+              </div>
 
-                {/* Personal Information */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-[#52018E]" />
-                    Personal Information
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-semibold text-gray-700">
-                        Guest Name *
-                      </Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Enter guest's full name"
-                        className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                        required
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="mobile" className="text-sm font-semibold text-gray-700">
-                          Mobile Number *
-                        </Label>
-                        <Input
-                          id="mobile"
-                          value={formData.mobile}
-                          onChange={handleChange}
-                          placeholder="Enter mobile number"
-                          className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          required
-                          disabled={isSubmitting}
-                          maxLength={10}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
-                          Email
-                        </Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          placeholder="Enter email address"
-                          className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="address" className="text-sm font-semibold text-gray-700">
-                        Address
-                      </Label>
-                      <Textarea
-                        id="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        placeholder="Enter complete address"
-                        className="rounded-xl border-2 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10 min-h-[80px]"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="bloodGroup" className="text-sm font-semibold text-gray-700">
-                          Blood Group
-                        </Label>
-                        <Select
-                          value={formData.bloodGroup}
-                          onValueChange={(value) => handleSelectChange("bloodGroup", value)}
-                          disabled={isSubmitting}
-                        >
-                          <SelectTrigger className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E]">
-                            <SelectValue placeholder="Select blood group" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="A+">A+</SelectItem>
-                            <SelectItem value="A-">A-</SelectItem>
-                            <SelectItem value="B+">B+</SelectItem>
-                            <SelectItem value="B-">B-</SelectItem>
-                            <SelectItem value="AB+">AB+</SelectItem>
-                            <SelectItem value="AB-">AB-</SelectItem>
-                            <SelectItem value="O+">O+</SelectItem>
-                            <SelectItem value="O-">O-</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="emergencyContact" className="text-sm font-semibold text-gray-700">
-                          Emergency Contact
-                        </Label>
-                        <Input
-                          id="emergencyContact"
-                          value={formData.emergencyContact}
-                          onChange={handleChange}
-                          placeholder="Emergency contact number"
-                          className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="idProofType" className="text-sm font-semibold text-gray-700">
-                          ID Proof Type
-                        </Label>
-                        <Select
-                          value={formData.idProofType}
-                          onValueChange={(value) => handleSelectChange("idProofType", value)}
-                          disabled={isSubmitting}
-                        >
-                          <SelectTrigger className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E]">
-                            <SelectValue placeholder="ID proof type" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="Aadhar">Aadhar Card</SelectItem>
-                            <SelectItem value="PAN">PAN Card</SelectItem>
-                            <SelectItem value="Driving License">Driving License</SelectItem>
-                            <SelectItem value="Passport">Passport</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="idProofNumber" className="text-sm font-semibold text-gray-700">
-                          ID Proof Number
-                        </Label>
-                        <Input
-                          id="idProofNumber"
-                          value={formData.idProofNumber}
-                          onChange={handleChange}
-                          placeholder="Enter ID proof number"
-                          className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Professional Information */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-[#52018E]" />
-                    Professional Information
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-      <Label
-        htmlFor="occupation"
-        className="text-sm font-semibold text-gray-700"
-      >
-        Occupation
-      </Label>
-      <Select
-        value={formData.occupation}
-        onValueChange={(value) =>
-          setFormData((prev: any) => ({ ...prev, occupation: value }))
-        }
-        disabled={isSubmitting}
-      >
-        <SelectTrigger
-          id="occupation"
-          className="w-full h-12 rounded-xl border-2 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-        >
-          <SelectValue placeholder="Select occupation" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="student">Student</SelectItem>
-          <SelectItem value="employee">Employee</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="companyName" className="text-sm font-semibold text-gray-700">
-                          Company Name
-                        </Label>
-                        <Input
-                          id="companyName"
-                          value={formData.companyName}
-                          onChange={handleChange}
-                          placeholder="Enter company name"
-                          className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dateOfJoining" className="text-sm font-semibold text-gray-700">
-                        Date of Joining
-                      </Label>
-                      <Input
-                        id="dateOfJoining"
-                        type="date"
-                        value={formData.dateOfJoining}
-                        onChange={handleChange}
-                        className="h-12 rounded-xl border-2 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Room & Rent Details */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Home className="w-5 h-5 text-[#52018E]" />
-                    Room & Rent Details
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="roomId" className="text-sm font-semibold text-gray-700">
-                          Room No. *
-                        </Label>
-                        <Select
-                          value={formData.roomId}
-                          onValueChange={(value) => handleSelectChange("roomId", value)}
-                          disabled={loadingRooms || isSubmitting}
-                        >
-                          <SelectTrigger className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E]">
-                            <SelectValue placeholder={loadingRooms ? "Loading rooms..." : "Select Room"} />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            {rooms.length > 0 ? (
-                              rooms.map((room) => (
-                                <SelectItem key={room.room_id} value={room.room_id.toString()}>
-                                  {room.room_no} - {room.room_type} (₹{room.rent_amount})
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="no-rooms" disabled>
-                                {loadingRooms ? "Loading..." : "No rooms available"}
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bedId" className="text-sm font-semibold text-gray-700">
-                          Bed No.
-                        </Label>
-                        <Select
-                          value={formData.bedId}
-                          onValueChange={(value) => handleSelectChange("bedId", value)}
-                          disabled={loadingBeds || !formData.roomId || isSubmitting}
-                        >
-                          <SelectTrigger className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E]">
-                            <SelectValue placeholder={loadingBeds ? "Loading beds..." : "Select Bed"} />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            {beds
-                              .filter((bed) => bed.ava_status === "vacant" || bed.bed_id.toString() === formData.bedId)
-                              .map((bed) => (
-                                <SelectItem key={bed.bed_id} value={bed.bed_id.toString()}>
-                                  Bed {bed.bed_no} ({bed.ava_status})
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="rentAmount" className="text-sm font-semibold text-gray-700">
-                          Rent Amount (₹) *
-                        </Label>
-                        <Input
-                          id="rentAmount"
-                          type="number"
-                          value={formData.rentAmount}
-                          onChange={handleChange}
-                          placeholder="7500"
-                          className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          required
-                          disabled={isSubmitting}
-                          min="0"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="rentDueDate" className="text-sm font-semibold text-gray-700">
-                          Rent Due Date *
-                        </Label>
-                        <Input
-                          id="rentDueDate"
-                          type="date"
-                          value={formData.rentDueDate}
-                          onChange={handleChange}
-                          className="h-12 rounded-xl border-2 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          required
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="checkInDate" className="text-sm font-semibold text-gray-700">
-                          Check-in Date *
-                        </Label>
-                        <Input
-                          id="checkInDate"
-                          type="date"
-                          value={formData.checkInDate}
-                          onChange={handleChange}
-                          className="h-12 rounded-xl border-2 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          required
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="foodPlan" className="text-sm font-semibold text-gray-700">
-                          Food Plan
-                        </Label>
-                        <Select
-                          value={formData.foodPlan}
-                          onValueChange={(value) => handleSelectChange("foodPlan", value)}
-                          disabled={isSubmitting}
-                        >
-                          <SelectTrigger className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E]">
-                            <SelectValue placeholder="Select food plan" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-xl">
-                            <SelectItem value="With Food">With Food</SelectItem>
-                            <SelectItem value="Without Food">Without Food</SelectItem>
-                            <SelectItem value="Veg">Veg</SelectItem>
-                            <SelectItem value="Non-Veg">Non-Veg</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-  <Label
-    htmlFor="expectedStayDuration"
-    className="text-sm font-semibold text-gray-700"
-  >
-    Expected Stay Duration
-  </Label>
-  <Select
-    value={formData.expectedStayDuration}
-    onValueChange={(value) =>
-      setFormData((prev: any) => ({ ...prev, expectedStayDuration: value }))
-    }
-    disabled={isSubmitting}
-  >
-    <SelectTrigger
-      id="expectedStayDuration"
-      className="w-full h-12 rounded-xl border-2 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-    >
-      <SelectValue placeholder="Select expected stay duration" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="1">1 Month</SelectItem>
-      <SelectItem value="3">3 Months</SelectItem>
-      <SelectItem value="6">6 Months</SelectItem>
-      <SelectItem value="12">12 Months</SelectItem>
-    </SelectContent>
-  </Select>
-</div>
-
-                  </div>
-                </div>
-
-                {/* Additional Information */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Building className="w-5 h-5 text-[#52018E]" />
-                    Additional Information
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="vehicleDetails" className="text-sm font-semibold text-gray-700">
-                        Vehicle Details
-                      </Label>
-                      <Input
-                        id="vehicleDetails"
-                        value={formData.vehicleDetails}
-                        onChange={handleChange}
-                        placeholder="Honda Activa - MH12AB1234"
-                        className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="referenceName" className="text-sm font-semibold text-gray-700">
-                          Reference Name
-                        </Label>
-                        <Input
-                          id="referenceName"
-                          value={formData.referenceName}
-                          onChange={handleChange}
-                          placeholder="Reference person name"
-                          className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="referenceContact" className="text-sm font-semibold text-gray-700">
-                          Reference Contact
-                        </Label>
-                        <Input
-                          id="referenceContact"
-                          value={formData.referenceContact}
-                          onChange={handleChange}
-                          placeholder="Reference contact number"
-                          className="w-full rounded-xl border-2 h-12 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10"
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-[#52018E]" />
-                    Additional Notes
-                  </h3>
+              {/* Personal Information */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#3578D9]" />
+                  Personal Information
+                </h3>
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="notes" className="text-sm font-semibold text-gray-700">
-                      Notes
+                    <Label
+                      htmlFor="name"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Guest Name *
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="Enter guest's full name"
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                      required
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="mobile"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Mobile Number *
+                    </Label>
+                    <Input
+                      id="mobile"
+                      type="tel"
+                      value={formData.mobile}
+                      onChange={handleChange}
+                      placeholder="Enter mobile number"
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                      required
+                      disabled={isSubmitting}
+                      maxLength={10}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="email"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Enter email address"
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="address"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Address
                     </Label>
                     <Textarea
-                      id="notes"
-                      value={formData.notes}
+                      id="address"
+                      value={formData.address}
                       onChange={handleChange}
-                      placeholder="Any specific notes or comments"
-                      className="rounded-xl border-2 border-gray-200 focus:border-[#52018E] focus:ring-4 focus:ring-[#52018E]/10 min-h-[80px]"
+                      placeholder="Enter complete address"
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="pincode"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Pincode
+                    </Label>
+                    <Input
+                      id="pincode"
+                      value={formData.pincode}
+                      onChange={handleChange}
+                      placeholder="Enter pincode"
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {/* Searchable Country */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="country"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Country
+                    </Label>
+                    <Popover open={countryOpen} onOpenChange={setCountryOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={countryOpen}
+                          className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10 justify-between text-left"
+                          disabled={loadingCountries || isSubmitting}
+                        >
+                          {formData.country
+                            ? formData.country
+                            : loadingCountries
+                            ? "Loading countries..."
+                            : "Select Country"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search country..." />
+                          <CommandEmpty>No country found.</CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-auto">
+                            {countries.map((country) => (
+                              <CommandItem
+                                key={country.id}
+                                value={country.name}
+                                onSelect={() => {
+                                  handleSelectChange("country", country.name);
+                                  setCountryOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.country === country.name
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {country.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {/* Searchable State */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="state"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      State
+                    </Label>
+                    <Popover open={stateOpen} onOpenChange={setStateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={stateOpen}
+                          className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10 justify-between text-left"
+                          disabled={
+                            loadingStates || !formData.country || isSubmitting
+                          }
+                        >
+                          {formData.state
+                            ? formData.state
+                            : loadingStates
+                            ? "Loading states..."
+                            : "Select State"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search state..." />
+                          <CommandEmpty>No state found.</CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-auto">
+                            {states.map((state) => (
+                              <CommandItem
+                                key={state.id}
+                                value={state.name}
+                                onSelect={() => {
+                                  handleSelectChange("state", state.name);
+                                  setStateOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.state === state.name
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {state.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {/* Searchable City */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="city"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      City
+                    </Label>
+                    <Popover open={cityOpen} onOpenChange={setCityOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={cityOpen}
+                          className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10 justify-between text-left"
+                          disabled={
+                            loadingCities || !formData.state || isSubmitting
+                          }
+                        >
+                          {formData.city
+                            ? formData.city
+                            : loadingCities
+                            ? "Loading cities..."
+                            : "Select City"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search city..." />
+                          <CommandEmpty>No city found.</CommandEmpty>
+                          <CommandGroup className="max-h-60 overflow-auto">
+                            {cities.map((city) => (
+                              <CommandItem
+                                key={city.id}
+                                value={city.name}
+                                onSelect={() => {
+                                  handleSelectChange("city", city.name);
+                                  setCityOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.city === city.name
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {city.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="bloodGroup"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Blood Group
+                    </Label>
+                    <Select
+                      value={formData.bloodGroup}
+                      onValueChange={(value) =>
+                        handleSelectChange("bloodGroup", value)
+                      }
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="w-full  rounded-xl border-2 py-5 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10">
+                        <SelectValue placeholder="Select blood group" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value="A+">A+</SelectItem>
+                        <SelectItem value="A-">A-</SelectItem>
+                        <SelectItem value="B+">B+</SelectItem>
+                        <SelectItem value="B-">B-</SelectItem>
+                        <SelectItem value="AB+">AB+</SelectItem>
+                        <SelectItem value="AB-">AB-</SelectItem>
+                        <SelectItem value="O+">O+</SelectItem>
+                        <SelectItem value="O-">O-</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="emerContactName"
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        Emergency Contact Name
+                      </Label>
+                      <Input
+                        id="emerContactName"
+                        value={formData.emerContactName}
+                        onChange={handleChange}
+                        placeholder="Emergency contact name"
+                        className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="emerContactNo"
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        Emergency Contact Number
+                      </Label>
+                      <Input
+                        id="emerContactNo"
+                        value={formData.emerContactNo}
+                        onChange={handleChange}
+                        placeholder="Emergency contact number"
+                        className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="idProofType"
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        ID Proof Type
+                      </Label>
+                      <Select
+                        value={formData.idProofType}
+                        onValueChange={(value) =>
+                          handleSelectChange("idProofType", value)
+                        }
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger className="w-full  rounded-xl border-2 py-5 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10">
+                          <SelectValue placeholder="ID proof type" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="Aadhar">Aadhar Card</SelectItem>
+                          <SelectItem value="PAN">PAN Card</SelectItem>
+                          <SelectItem value="Driving License">
+                            Driving License
+                          </SelectItem>
+                          <SelectItem value="Passport">Passport</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="idProofNumber"
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        ID Proof Number
+                      </Label>
+                      <Input
+                        id="idProofNumber"
+                        value={formData.idProofNumber}
+                        onChange={handleChange}
+                        placeholder="Enter ID proof number"
+                        className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Professional Information */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-[#3578D9]" />
+                  Professional Information
+                </h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="occupation"
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        Occupation
+                      </Label>
+                      <Select
+                        value={formData.occupation}
+                        onValueChange={(value) =>
+                          handleSelectChange("occupation", value)
+                        }
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger className="w-full rounded-xl border-2 py-5 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10">
+                          <SelectValue placeholder="Select occupation" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="student">Student</SelectItem>
+                          <SelectItem value="employee">Employee</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="companyName"
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        Company Name
+                      </Label>
+                      <Input
+                        id="companyName"
+                        value={formData.companyName}
+                        onChange={handleChange}
+                        placeholder="Enter company name"
+                        className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="dateOfJoining"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Date of Joining
+                    </Label>
+                    <Input
+                      id="dateOfJoining"
+                      type="date"
+                      value={formData.dateOfJoining}
+                      onChange={handleChange}
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
                       disabled={isSubmitting}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Action Button */}
-              <div className="p-6 border-t border-gray-100 bg-white">
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-[#52018E] text-white hover:opacity-90 rounded-2xl font-semibold disabled:opacity-50"
-                  disabled={isSubmitting || isUploadingPhoto}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Registering...
-                    </>
-                  ) : (
-                    "Register"
-                  )}
-                </Button>
+              {/* Additional Information */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Building className="w-5 h-5 text-[#3578D9]" />
+                  Additional Information
+                </h3>
+                <div className="space-y-4">
+                  {/* Vehicle Details - Single Column */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="vehicleName"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Vehicle Name (optional)
+                    </Label>
+                    <Input
+                      id="vehicleName"
+                      value={formData.vehicleName}
+                      onChange={handleChange}
+                      placeholder="Vehicle name"
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="vehicleNo"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Vehicle Number (optional)
+                    </Label>
+                    <Input
+                      id="vehicleNo"
+                      value={formData.vehicleNo}
+                      onChange={handleChange}
+                      placeholder="Vehicle number"
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {/* Reference Details - Single Column */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="referenceName"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Reference Name
+                    </Label>
+                    <Input
+                      id="referenceName"
+                      value={formData.referenceName}
+                      onChange={handleChange}
+                      placeholder="Reference name"
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="referenceContact"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Reference Contact
+                    </Label>
+                    <Input
+                      id="referenceContact"
+                      value={formData.referenceContact}
+                      onChange={handleChange}
+                      placeholder="Reference contact number"
+                      className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
               </div>
-            </form>
-          </div>
-        </div>
-    </div>
-  );
-}
+              {/* Additional Notes */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#3578D9]" />
+                  Additional Notes
+                </h3>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="notes"
+                    className="text-sm font-semibold text-gray-700"
+                  >
+                    Notes
+                  </Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    placeholder="Any notes"
+                    className="w-full h-11 rounded-xl border-2 py-3 border-gray-200 focus:border-[#3578D9] focus:ring-4 focus:ring-[#3578D9]/10"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+            </div>
 
-export default function HomePage() {
-  return (
-    <UserLayout>
-      <Suspense fallback={<HomePageSkeleton />}>
-        <AddGuestPage />
-      </Suspense>
+            {/* Action Button */}
+            <div className="p-6 border-t border-gray-100 bg-white">
+              <Button
+                type="submit"
+                className="w-full h-11 bg-primary text-white hover:opacity-90 rounded-2xl font-semibold disabled:opacity-50"
+                disabled={isSubmitting || isUploadingPhoto}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Registering...
+                  </>
+                ) : (
+                  "Register"
+                )}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
     </UserLayout>
   );
 }
+
+export default RegisterForm;

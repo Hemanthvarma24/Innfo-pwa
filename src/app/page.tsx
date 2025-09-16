@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { HomePageSkeleton } from "@/components/skeleton-loader"
-import { Utensils, ImageIcon, CreditCard, MapPin, Phone, Star, Share2, HelpCircle } from "lucide-react"
+import { Utensils, ImageIcon, CreditCard, MapPin, Phone, Star, Share2, HelpCircle, ScrollText } from "lucide-react"
 import UserLayout from "@/components/userlayout"
 import { useSearchParams } from "next/navigation"
 
@@ -14,7 +14,8 @@ function HomePageContent() {
   const searchParams = useSearchParams();
   const userId = searchParams.get("user_id")
   const buildingId = searchParams.get("building_id")
-  const [pgName, setPgName] = useState("N/A");
+  const [companyName, setCompanyName] = useState("N/A");
+  const [companyAddress, setCompanyAddress] = useState("N/A");
   const [whyUsList, setWhyUsList] = useState<string[]>([]);
   const [facilitiesList, setFacilitiesList] = useState<string[]>([]);
 
@@ -28,7 +29,8 @@ function HomePageContent() {
         );
         const data = await res.json();
 
-        setPgName(data.pg_name || "Innfo PG Accommodation");
+        setCompanyName(data.company_name || "Innfo PG Accommodation");
+        setCompanyAddress(data.company_address || "N/A");
 
         // Extract and split "whyus" into an array
         setWhyUsList(
@@ -43,7 +45,8 @@ function HomePageContent() {
         );
       } catch (err) {
         console.error("Failed to fetch user data", err);
-        setPgName("Innfo PG Accommodation");
+        setCompanyName("Innfo PG Accommodation");
+        setCompanyAddress("N/A");
         setWhyUsList([]);
         setFacilitiesList([]);
       }
@@ -60,10 +63,10 @@ function HomePageContent() {
       href: `/food?user_id=${userId}&building_id=${buildingId}`,
     },
     {
-      name: "Gallery",
-      description: "Room photos",
-      icon: <ImageIcon className="h-5 w-5" />,
-      href: `/gallery?user_id=${userId}&building_id=${buildingId}`,
+      name: "Rules",
+      description: "Rules & Facilities",
+      icon: <ScrollText className="h-5 w-5" />,
+      href: `/rules?user_id=${userId}&building_id=${buildingId}`,
     },
     {
       name: "Pay Rent",
@@ -110,10 +113,14 @@ function HomePageContent() {
         <div className="bg-gradient-to-br from-[#52018E] via-[#7B2CBF] to-[#9D4EDD] p-4 rounded-3xl">
           <div className="max-w-2xl">
             <h1 className="text-2xl font-bold text-white mb-2">
-              Welcome to {pgName} Accommodation
+              Welcome to {companyName}
             </h1>
-            <p className="text-sm text-white/90 mb-4">
+            <p className="text-sm text-white/90 mb-2">
               Your home away from home with all the comfort and convenience you need
+            </p>
+            <p className="text-sm text-white/80 mb-4 flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              {companyAddress}
             </p>
             <div className="flex flex-wrap gap-6">
               <Button size="lg" className="bg-white text-[#52018E] hover:bg-white/90 btn-animate" asChild>
